@@ -1,0 +1,2633 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+  <title>EmojiWord Blitz 🎮 — Multiplayer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap"
+    rel="stylesheet" />
+
+  <!-- ═══ FIREBASE SDK ═══ -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+
+  <style>
+    :root {
+      --bg: #0d0d1a;
+      --card: #1a1a2e;
+      --card2: #16213e;
+      --accent: #f72585;
+      --accent2: #7209b7;
+      --accent3: #3a0ca3;
+      --neon: #4cc9f0;
+      --green: #06d6a0;
+      --yellow: #ffd166;
+      --red: #ef233c;
+      --text: #f8f9fa;
+      --muted: #8899aa;
+      --border: rgba(76, 201, 240, 0.2);
+      --radius: 16px;
+      --shadow: 0 8px 32px rgba(247, 37, 133, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent
+    }
+
+    html,
+    body {
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Nunito', sans-serif;
+      background: var(--bg);
+      color: var(--text)
+    }
+
+    /* ── SETUP BANNER ── */
+    .setup-banner {
+      background: linear-gradient(135deg, rgba(247, 37, 133, .15), rgba(114, 9, 183, .15));
+      border: 1.5px solid rgba(247, 37, 133, .4);
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 13px;
+      line-height: 1.7;
+      margin-bottom: 14px;
+      color: var(--text)
+    }
+
+    .setup-banner strong {
+      color: var(--neon)
+    }
+
+    .setup-banner code {
+      background: rgba(255, 255, 255, .1);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      color: var(--yellow)
+    }
+
+    /* ── TAB BAR ── */
+    .tab-bar {
+      display: flex;
+      background: var(--card);
+      border-bottom: 2px solid var(--border);
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      height: 56px
+    }
+
+    .tab-btn {
+      flex: 1;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-family: 'Fredoka One', cursive;
+      font-size: 17px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all .2s;
+      position: relative
+    }
+
+    .tab-btn.active {
+      color: var(--neon)
+    }
+
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 10%;
+      right: 10%;
+      height: 3px;
+      background: var(--neon);
+      border-radius: 3px 3px 0 0
+    }
+
+    /* ── SCREENS ── */
+    .screen {
+      position: fixed;
+      top: 56px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      overflow-y: auto;
+      display: none;
+      padding: 20px 16px 40px
+    }
+
+    .screen.active {
+      display: block
+    }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow)
+    }
+
+    .card-title {
+      font-family: 'Fredoka One', cursive;
+      font-size: 20px;
+      color: var(--neon);
+      margin-bottom: 16px
+    }
+
+    /* ── INPUTS ── */
+    input[type=text],
+    input[type=password] {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Nunito', sans-serif;
+      font-size: 16px;
+      outline: none;
+      margin-bottom: 12px;
+      transition: border .2s
+    }
+
+    input:focus {
+      border-color: var(--neon)
+    }
+
+    /* ── BUTTONS ── */
+    .btn {
+      width: 100%;
+      padding: 15px;
+      border-radius: 12px;
+      border: none;
+      font-family: 'Fredoka One', cursive;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all .2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 10px
+    }
+
+    .btn:active {
+      transform: scale(.97)
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff
+    }
+
+    .btn-secondary {
+      background: linear-gradient(135deg, var(--accent3), var(--neon));
+      color: #fff
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, var(--red), #900);
+      color: #fff
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, var(--green), #048a68);
+      color: #fff
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 2px solid var(--border);
+      color: var(--neon);
+      font-family: 'Fredoka One', cursive;
+      font-size: 16px
+    }
+
+    .btn-sm {
+      padding: 8px 16px;
+      font-size: 14px;
+      width: auto;
+      border-radius: 8px;
+      margin-bottom: 0
+    }
+
+    /* ── HERO ── */
+    .hero {
+      text-align: center;
+      padding: 20px 0 10px
+    }
+
+    .hero h1 {
+      font-family: 'Fredoka One', cursive;
+      font-size: 32px;
+      line-height: 1.1;
+      background: linear-gradient(135deg, var(--neon), var(--accent));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent
+    }
+
+    .hero p {
+      color: var(--muted);
+      font-size: 14px;
+      margin-top: 6px
+    }
+
+    /* ── ROOM CODE ── */
+    .room-code-display {
+      background: linear-gradient(135deg, var(--accent3), var(--accent2));
+      border-radius: 14px;
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 16px
+    }
+
+    .room-code-display .label {
+      font-size: 12px;
+      color: rgba(255, 255, 255, .7);
+      letter-spacing: 2px;
+      text-transform: uppercase
+    }
+
+    .room-code-display .code {
+      font-family: 'Fredoka One', cursive;
+      font-size: 42px;
+      color: #fff;
+      letter-spacing: 8px;
+      margin: 6px 0
+    }
+
+    .room-code-display .sub {
+      font-size: 12px;
+      color: rgba(255, 255, 255, .6)
+    }
+
+    /* ── TIMER ── */
+    .timer-ring-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 8px 0
+    }
+
+    .timer-svg {
+      transform: rotate(-90deg)
+    }
+
+    .timer-bg {
+      fill: none;
+      stroke: rgba(255, 255, 255, .1);
+      stroke-width: 6
+    }
+
+    .timer-arc {
+      fill: none;
+      stroke: var(--neon);
+      stroke-width: 6;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 1s linear, stroke .3s
+    }
+
+    .timer-text {
+      font-family: 'Fredoka One', cursive;
+      font-size: 28px;
+      fill: var(--text);
+      text-anchor: middle;
+      dominant-baseline: central
+    }
+
+    /* ── EMOJI DISPLAY ── */
+    .emoji-display {
+      font-size: 52px;
+      text-align: center;
+      padding: 18px;
+      background: var(--bg);
+      border-radius: 14px;
+      margin: 10px 0;
+      border: 2px dashed var(--border);
+      min-height: 94px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      letter-spacing: 8px
+    }
+
+    /* ── CHANCES ── */
+    .chances {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin: 8px 0
+    }
+
+    .heart {
+      font-size: 26px;
+      transition: all .3s
+    }
+
+    .heart.lost {
+      filter: grayscale(1) opacity(.25);
+      transform: scale(.75)
+    }
+
+    /* ── ANSWER INPUT ── */
+    .answer-area {
+      display: flex;
+      gap: 8px
+    }
+
+    .answer-area input {
+      margin-bottom: 0;
+      flex: 1
+    }
+
+    .answer-area button {
+      width: auto;
+      padding: 14px 18px;
+      border-radius: 12px;
+      font-size: 22px;
+      margin-bottom: 0;
+      border: none;
+      cursor: pointer;
+      background: var(--neon);
+      color: var(--bg);
+      font-weight: 900
+    }
+
+    /* ── REVEAL BANNER ── */
+    .reveal-banner {
+      background: linear-gradient(135deg, var(--green), #048a68);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      margin: 10px 0
+    }
+
+    .reveal-banner .answer-word {
+      font-family: 'Fredoka One', cursive;
+      font-size: 30px;
+      color: #fff;
+      letter-spacing: 3px
+    }
+
+    .reveal-banner .sub {
+      font-size: 13px;
+      color: rgba(255, 255, 255, .8);
+      margin-top: 4px
+    }
+
+    /* ── DEDUCT BANNER ── */
+    .deduct-banner {
+      background: linear-gradient(135deg, #c1121f, #6a040f);
+      border-radius: 12px;
+      padding: 14px;
+      text-align: center;
+      margin: 10px 0;
+      border: 1px solid rgba(239, 35, 60, .4)
+    }
+
+    .deduct-banner .deduct-word {
+      font-family: 'Fredoka One', cursive;
+      font-size: 24px;
+      color: #fff
+    }
+
+    .deduct-banner .deduct-sub {
+      font-size: 13px;
+      color: rgba(255, 255, 255, .75);
+      margin-top: 4px
+    }
+
+    /* ── PLAYER TABLE ── */
+    .player-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px
+    }
+
+    .player-table th {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 8px 6px;
+      text-align: left;
+      border-bottom: 1px solid var(--border)
+    }
+
+    .player-table td {
+      padding: 10px 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, .05)
+    }
+
+    .player-table tr:last-child td {
+      border-bottom: none
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 5px
+    }
+
+    .status-dot.online {
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green)
+    }
+
+    .status-dot.left {
+      background: var(--red)
+    }
+
+    .status-dot.aborted {
+      background: var(--yellow)
+    }
+
+    /* ── BADGES ── */
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700
+    }
+
+    .badge-correct {
+      background: rgba(6, 214, 160, .2);
+      color: var(--green)
+    }
+
+    .badge-wrong {
+      background: rgba(239, 35, 60, .2);
+      color: var(--red)
+    }
+
+    .badge-timeout {
+      background: rgba(255, 209, 102, .2);
+      color: var(--yellow)
+    }
+
+    .badge-waiting {
+      background: rgba(76, 201, 240, .2);
+      color: var(--neon)
+    }
+
+    .badge-failed {
+      background: rgba(239, 35, 60, .3);
+      color: #ff6b8a
+    }
+
+    /* ── SCOREBOARD ── */
+    .score-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border)
+    }
+
+    .score-row:last-child {
+      border-bottom: none
+    }
+
+    .score-row .rank {
+      font-family: 'Fredoka One', cursive;
+      font-size: 22px;
+      color: var(--muted);
+      width: 32px
+    }
+
+    .score-row .rank.gold {
+      color: #ffd700
+    }
+
+    .score-row .rank.silver {
+      color: #c0c0c0
+    }
+
+    .score-row .rank.bronze {
+      color: #cd7f32
+    }
+
+    .score-row .name {
+      flex: 1;
+      font-weight: 700;
+      font-size: 15px;
+      padding: 0 10px
+    }
+
+    .score-row .pts {
+      font-family: 'Fredoka One', cursive;
+      font-size: 24px;
+      color: var(--accent)
+    }
+
+    /* ── PROGRESS ── */
+    .q-progress {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px
+    }
+
+    .q-progress .label {
+      font-size: 13px;
+      color: var(--muted);
+      white-space: nowrap
+    }
+
+    .progress-bar {
+      flex: 1;
+      height: 6px;
+      background: rgba(255, 255, 255, .1);
+      border-radius: 3px;
+      overflow: hidden
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--neon));
+      border-radius: 3px;
+      transition: width .3s
+    }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      top: 70px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-80px);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 24px;
+      font-weight: 700;
+      font-size: 14px;
+      z-index: 999;
+      transition: transform .3s;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, .4);
+      text-align: center;
+      max-width: 290px;
+      pointer-events: none
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0)
+    }
+
+    .toast.success {
+      border-color: var(--green);
+      color: var(--green)
+    }
+
+    .toast.error {
+      border-color: var(--red);
+      color: var(--red)
+    }
+
+    .toast.info {
+      border-color: var(--neon);
+      color: var(--neon)
+    }
+
+    .toast.warn {
+      border-color: var(--yellow);
+      color: var(--yellow)
+    }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .88);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      display: none
+    }
+
+    .modal-overlay.open {
+      display: flex
+    }
+
+    .modal {
+      background: var(--card);
+      border-radius: 20px;
+      padding: 28px 24px;
+      width: 100%;
+      max-width: 340px;
+      border: 1px solid var(--border);
+      text-align: center
+    }
+
+    .modal h2 {
+      font-family: 'Fredoka One', cursive;
+      font-size: 24px;
+      margin-bottom: 12px
+    }
+
+    .modal p {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 20px;
+      line-height: 1.6
+    }
+
+    /* ── ABORT ── */
+    .abort-screen {
+      position: fixed;
+      inset: 0;
+      background: #0d0d1a;
+      z-index: 500;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 32px
+    }
+
+    .abort-screen.show {
+      display: flex
+    }
+
+    .abort-emoji {
+      font-size: 80px;
+      margin-bottom: 20px
+    }
+
+    .abort-screen h2 {
+      font-family: 'Fredoka One', cursive;
+      font-size: 28px;
+      color: var(--red);
+      margin-bottom: 12px
+    }
+
+    .abort-screen p {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.6
+    }
+
+    /* ── Q NUMBER ── */
+    .q-number {
+      font-family: 'Fredoka One', cursive;
+      font-size: 13px;
+      color: var(--muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 4px
+    }
+
+    /* ── PODIUM ── */
+    .podium {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 8px;
+      margin: 20px 0
+    }
+
+    .podium-slot {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px
+    }
+
+    .podium-block {
+      width: 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      padding-bottom: 8px;
+      border-radius: 8px 8px 0 0
+    }
+
+    .podium-block.first {
+      height: 90px;
+      background: linear-gradient(135deg, #ffd700, #ff9900)
+    }
+
+    .podium-block.second {
+      height: 65px;
+      background: linear-gradient(135deg, #aaa, #777)
+    }
+
+    .podium-block.third {
+      height: 48px;
+      background: linear-gradient(135deg, #cd7f32, #8b4513)
+    }
+
+    .podium-name {
+      font-size: 11px;
+      font-weight: 800;
+      text-align: center;
+      word-break: break-word;
+      color: rgba(255, 255, 255, .9);
+      padding: 0 4px
+    }
+
+    /* ── DASH TABS ── */
+    .dash-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 14px;
+      overflow-x: auto;
+      padding-bottom: 2px
+    }
+
+    .dash-tab {
+      padding: 7px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+      border: 1.5px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all .2s
+    }
+
+    .dash-tab.active {
+      background: var(--neon);
+      color: var(--bg);
+      border-color: var(--neon)
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes pulse {
+
+      0%,
+      100% {
+        transform: scale(1)
+      }
+
+      50% {
+        transform: scale(1.05)
+      }
+    }
+
+    @keyframes shake {
+
+      0%,
+      100% {
+        transform: translateX(0)
+      }
+
+      25% {
+        transform: translateX(-8px)
+      }
+
+      75% {
+        transform: translateX(8px)
+      }
+    }
+
+    @keyframes pop {
+      0% {
+        transform: scale(.5);
+        opacity: 0
+      }
+
+      80% {
+        transform: scale(1.1)
+      }
+
+      100% {
+        transform: scale(1);
+        opacity: 1
+      }
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(30px);
+        opacity: 0
+      }
+
+      to {
+        transform: translateY(0);
+        opacity: 1
+      }
+    }
+
+    @keyframes flashGreen {
+
+      0%,
+      100% {
+        background: var(--card)
+      }
+
+      50% {
+        background: rgba(6, 214, 160, .25)
+      }
+    }
+
+    @keyframes flashRed {
+
+      0%,
+      100% {
+        background: var(--card)
+      }
+
+      50% {
+        background: rgba(239, 35, 60, .25)
+      }
+    }
+
+    .anim-pop {
+      animation: pop .4s ease
+    }
+
+    .anim-shake {
+      animation: shake .4s ease
+    }
+
+    .anim-slide {
+      animation: slideUp .35s ease
+    }
+
+    .flash-correct {
+      animation: flashGreen .5s ease
+    }
+
+    .flash-wrong {
+      animation: flashRed .5s ease
+    }
+
+    /* ── PILLS ── */
+    .pill-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px
+    }
+
+    .pill {
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+      background: rgba(255, 255, 255, .07)
+    }
+
+    .pill span {
+      color: var(--neon)
+    }
+
+    /* ── EMPTY ── */
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 30px;
+      font-size: 14px
+    }
+
+    .empty .icon {
+      font-size: 36px;
+      display: block;
+      margin-bottom: 8px
+    }
+
+    /* ── HOST ANSWER BOX ── */
+    .host-answer-box {
+      margin-top: 10px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: rgba(6, 214, 160, .1);
+      border: 1.5px solid rgba(6, 214, 160, .35);
+      display: flex;
+      align-items: center;
+      gap: 10px
+    }
+
+    .host-answer-box .ans-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--green);
+      font-weight: 700;
+      white-space: nowrap
+    }
+
+    .host-answer-box .ans-word {
+      font-family: 'Fredoka One', cursive;
+      font-size: 22px;
+      color: #fff;
+      letter-spacing: 3px
+    }
+
+    .host-hint-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      background: rgba(255, 209, 102, .15);
+      border: 1px solid rgba(255, 209, 102, .3);
+      font-size: 12px;
+      color: var(--yellow);
+      font-weight: 700;
+      margin-top: 7px;
+      flex-wrap: wrap;
+      line-height: 1.5
+    }
+
+    /* ── HINT BOX ── */
+    .hint-box {
+      margin: 8px 0;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1.5px solid rgba(255, 209, 102, .3)
+    }
+
+    .hint-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 14px;
+      background: rgba(255, 209, 102, .06);
+      border-bottom: 1px solid rgba(255, 209, 102, .12);
+      font-size: 13px;
+      transition: background .4s
+    }
+
+    .hint-row:last-child {
+      border-bottom: none
+    }
+
+    .hint-row.locked {
+      opacity: .35
+    }
+
+    .hint-row.unlocked {
+      opacity: 1
+    }
+
+    .hint-icon {
+      font-size: 16px;
+      flex-shrink: 0
+    }
+
+    .hint-label {
+      font-size: 11px;
+      color: var(--yellow);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      min-width: 70px
+    }
+
+    .hint-value {
+      color: var(--text);
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 2px;
+      font-family: 'Fredoka One', cursive
+    }
+
+    .hint-value.masked {
+      color: var(--muted);
+      letter-spacing: 4px
+    }
+
+    /* ── SOLVED BAR ── */
+    .solved-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px;
+      background: rgba(6, 214, 160, .08);
+      border: 1px solid rgba(6, 214, 160, .2);
+      border-radius: 10px;
+      margin-bottom: 10px
+    }
+
+    .solved-bar .solved-text {
+      font-size: 13px;
+      color: var(--green);
+      font-weight: 700
+    }
+
+    .solved-bar .solved-count {
+      font-family: 'Fredoka One', cursive;
+      font-size: 20px;
+      color: var(--green)
+    }
+
+    /* ── DEDUCT FLASH ── */
+    .deduct-flash {
+      font-family: 'Fredoka One', cursive;
+      font-size: 18px;
+      color: var(--red);
+      text-align: center;
+      padding: 6px;
+      animation: pop .4s ease
+    }
+
+    /* ── AUTO NEXT ── */
+    .auto-next-bar {
+      margin-top: 10px;
+      height: 5px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, .1);
+      overflow: hidden
+    }
+
+    .auto-next-fill {
+      height: 100%;
+      background: var(--green);
+      border-radius: 3px;
+      transition: width 1s linear
+    }
+
+    .auto-next-label {
+      text-align: center;
+      font-size: 12px;
+      color: var(--green);
+      margin-top: 5px;
+      font-weight: 700
+    }
+
+    /* ── FINAL DASHBOARD ── */
+    .final-stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 4px
+    }
+
+    .final-stat {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      text-align: center
+    }
+
+    .final-stat .fs-val {
+      font-family: 'Fredoka One', cursive;
+      font-size: 28px;
+      color: var(--neon)
+    }
+
+    .final-stat .fs-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 3px
+    }
+
+    .mvp-card {
+      background: linear-gradient(135deg, rgba(247, 37, 133, .15), rgba(114, 9, 183, .15));
+      border: 1.5px solid rgba(247, 37, 133, .3);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 12px
+    }
+
+    .mvp-icon {
+      font-size: 32px;
+      flex-shrink: 0
+    }
+
+    .mvp-name {
+      font-family: 'Fredoka One', cursive;
+      font-size: 17px;
+      color: var(--text)
+    }
+
+    .mvp-desc {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px
+    }
+
+    .mvp-val {
+      font-family: 'Fredoka One', cursive;
+      font-size: 22px;
+      color: var(--accent);
+      margin-left: auto;
+      flex-shrink: 0
+    }
+
+    .end-game-btn {
+      background: linear-gradient(135deg, #ff6b35, #c1121f);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 15px;
+      width: 100%;
+      font-family: 'Fredoka One', cursive;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      transition: all .2s
+    }
+
+    .end-game-btn:active {
+      transform: scale(.97)
+    }
+
+    /* ── CONNECTION STATUS ── */
+    .conn-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      margin-bottom: 10px
+    }
+
+    .conn-badge.connected {
+      background: rgba(6, 214, 160, .15);
+      color: var(--green);
+      border: 1px solid rgba(6, 214, 160, .3)
+    }
+
+    .conn-badge.disconnected {
+      background: rgba(239, 35, 60, .15);
+      color: var(--red);
+      border: 1px solid rgba(239, 35, 60, .3)
+    }
+
+    .conn-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor
+    }
+
+    /* ── LOADING ── */
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(13, 13, 26, .9);
+      z-index: 400;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px
+    }
+
+    .loading-overlay.hidden {
+      display: none
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(76, 201, 240, .2);
+      border-top-color: var(--neon);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    .loading-text {
+      color: var(--neon);
+      font-family: 'Fredoka One', cursive;
+      font-size: 16px
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- LOADING OVERLAY -->
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Connecting to Firebase…</div>
+  </div>
+
+  <!-- TAB BAR -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('host')" id="tab-host">🎯 Host</button>
+    <button class="tab-btn" onclick="switchTab('player')" id="tab-player">🕹️ Player</button>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ABORT SCREEN -->
+  <div class="abort-screen" id="abort-screen">
+    <div class="abort-emoji">🚫</div>
+    <h2>Session Aborted!</h2>
+    <p>You left the game tab.<br>Your session has been terminated by the system.<br><br>Please contact your host to
+      re-join.</p>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <h2 id="modal-title">⚠️ Confirm</h2>
+      <p id="modal-body">Are you sure?</p>
+      <button class="btn btn-danger" onclick="modalConfirm()">Yes, proceed</button>
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- ═══ HOST: LOGIN ═══ -->
+  <div class="screen active" id="host-login">
+    <div class="hero">
+      <h1>EmojiWord Blitz 🎮</h1>
+      <p>Real multiplayer — students on their own phones!</p>
+    </div>
+
+    <!-- SETUP GUIDE -->
+    <div class="setup-banner">
+      <strong>🔥 First-time Firebase Setup (one-time, free)</strong><br>
+      1. Go to <strong>console.firebase.google.com</strong> → New project<br>
+      2. Build → Realtime Database → Create (Test mode)<br>
+      3. Copy your <strong>Database URL</strong> (ends in <code>.firebaseio.com</code>)<br>
+      4. Paste it below and save — done! ✅
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔥 Firebase Config</div>
+      <input type="text" id="firebase-url" placeholder="https://cnxon-b0bdf-default-rtdb.firebaseio.com"
+        style="font-size:13px" />
+      <button class="btn btn-outline" style="font-size:14px;margin-bottom:14px" onclick="saveFirebaseConfig()">💾 Save &
+        Connect</button>
+      <div id="conn-status"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔐 Host Login</div>
+      <input type="text" id="host-username" placeholder="Username (e.g. Teacher_Alex)" />
+      <input type="password" id="host-password" placeholder="Password" />
+      <button class="btn btn-primary" onclick="hostLogin()">🚀 Login & Create Room</button>
+    </div>
+    <div class="card" style="font-size:13px;color:var(--muted);line-height:1.8">
+      <div class="card-title" style="font-size:15px">📋 How It Works</div>
+      1. Connect Firebase above (once) then login<br>
+      2. Share the room code with your students<br>
+      3. Students open this page on their phone → Player tab<br>
+      4. Monitor scores, answers & status live<br>
+      5. End game anytime or let all 80 questions run
+    </div>
+  </div>
+
+  <!-- ═══ HOST: LOBBY ═══ -->
+  <div class="screen" id="host-lobby">
+    <div class="room-code-display">
+      <div class="label">Room Code</div>
+      <div class="code" id="host-room-code">----</div>
+      <div class="sub">Students enter this code in the Player tab</div>
+    </div>
+    <div class="card">
+      <div class="card-title">👥 Players Joined</div>
+      <div id="lobby-player-list">
+        <div class="empty"><span class="icon">⏳</span>Waiting for players…</div>
+      </div>
+    </div>
+    <button class="btn btn-success" id="start-game-btn" onclick="hostStartGame()" disabled>▶️ Start Game</button>
+    <button class="btn btn-danger" onclick="confirmTerminate()">🗑️ Terminate Room</button>
+  </div>
+
+  <!-- ═══ HOST: DASHBOARD ═══ -->
+  <div class="screen" id="host-dashboard">
+    <div class="pill-row">
+      <div class="pill">Q <span id="hd-q-num">1</span>/80</div>
+      <div class="pill">Players <span id="hd-player-count">0</span></div>
+      <div class="pill">⏱️ <span id="hd-timer">30</span>s</div>
+    </div>
+    <div class="card" style="padding:14px">
+      <div class="q-number" id="hd-q-label">Question 1 of 80</div>
+      <div class="emoji-display" id="hd-emoji" style="font-size:40px;min-height:72px">—</div>
+      <div class="host-answer-box">
+        <span class="ans-label">Answer</span>
+        <span class="ans-word" id="hd-answer">—</span>
+      </div>
+      <div id="hd-hint-badge" class="host-hint-badge" style="display:none">
+        💡 <span id="hd-hint-text"></span>
+      </div>
+    </div>
+    <div class="dash-tabs">
+      <button class="dash-tab active" onclick="showDashTab('scores',event)">🏆 Scores</button>
+      <button class="dash-tab" onclick="showDashTab('answers',event)">💬 Answers</button>
+      <button class="dash-tab" onclick="showDashTab('players',event)">👥 Players</button>
+    </div>
+    <div id="dash-scores" class="dash-panel">
+      <div class="card" style="padding:14px" id="scores-list"></div>
+    </div>
+    <div id="dash-answers" class="dash-panel" style="display:none">
+      <div class="card" style="padding:14px" id="answers-list"></div>
+    </div>
+    <div id="dash-players" class="dash-panel" style="display:none">
+      <div class="card" style="padding:0 14px" id="players-list"></div>
+    </div>
+    <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
+      <button class="btn btn-secondary" style="font-size:16px" onclick="hostForceNext()">⏭️ Force Next Question</button>
+      <button class="end-game-btn" onclick="confirmEndGame()">🏁 End Game & See Results</button>
+      <button class="btn btn-danger" onclick="confirmTerminate()">🗑️ Terminate Room</button>
+    </div>
+  </div>
+
+  <!-- ═══ HOST: FINAL DASHBOARD ═══ -->
+  <div class="screen" id="host-gameover">
+    <div class="hero" style="padding-bottom:6px">
+      <h1>🏁 Final Results</h1>
+      <p id="host-go-sub">Game completed</p>
+    </div>
+    <div class="card" style="padding:14px">
+      <div class="card-title">🏆 Podium</div>
+      <div class="podium" id="host-podium"></div>
+    </div>
+    <div class="dash-tabs">
+      <button class="dash-tab active" onclick="showFinalTab('scoreboard',event)">📊 Scoreboard</button>
+      <button class="dash-tab" onclick="showFinalTab('performance',event)">📈 Performance</button>
+      <button class="dash-tab" onclick="showFinalTab('mvp',event)">⭐ MVPs</button>
+    </div>
+    <div id="final-scoreboard" class="final-panel">
+      <div class="card" style="padding:14px" id="host-final-scores"></div>
+    </div>
+    <div id="final-performance" class="final-panel" style="display:none">
+      <div class="card" style="padding:14px" id="host-final-perf"></div>
+    </div>
+    <div id="final-mvp" class="final-panel" style="display:none">
+      <div id="host-final-mvp" style="padding-bottom:4px"></div>
+    </div>
+    <button class="btn btn-primary" onclick="hostNewGame()" style="margin-top:8px">🔄 New Room</button>
+    <button class="btn btn-danger" onclick="confirmTerminate()">🗑️ Exit</button>
+  </div>
+
+  <!-- ═══ PLAYER: JOIN ═══ -->
+  <div class="screen" id="player-join">
+    <div class="hero">
+      <h1>EmojiWord Blitz 🎮</h1>
+      <p>Join your teacher's room to play!</p>
+    </div>
+
+    <!-- Firebase URL for player too -->
+    <div class="card" id="player-firebase-card">
+      <div class="card-title" style="font-size:15px">🔥 Firebase URL</div>
+      <input type="text" id="player-firebase-url" placeholder="https://cnxon-b0bdf-default-rtdb.firebaseio.com"
+        style="font-size:13px" />
+      <button class="btn btn-outline" style="font-size:14px;margin-bottom:0" onclick="saveFirebaseConfigPlayer()">💾
+        Save & Connect</button>
+      <div id="player-conn-status" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🕹️ Join a Room</div>
+      <input type="text" id="player-name" placeholder="Your name" maxlength="20" />
+      <input type="text" id="player-room-code" placeholder="Room code from teacher" style="text-transform:uppercase" />
+      <button class="btn btn-secondary" onclick="playerJoin()">🎮 Join & Play!</button>
+    </div>
+    <div class="card" style="font-size:13px;color:var(--muted);line-height:1.9">
+      <div class="card-title" style="font-size:15px">📖 Game Rules</div>
+      ❤️❤️❤️ 3 chances per question<br>
+      ⏱️ <strong style="color:var(--yellow)">30 seconds</strong> to answer each puzzle<br>
+      ✅ Correct = +10 pts | ⚡ Speed bonus up to +5 pts<br>
+      ❌ Wrong guess = lose 1 chance<br>
+      💔 Lose ALL chances = <strong style="color:var(--red)">−5 pts deducted!</strong><br>
+      🚫 Leaving tab = session aborted!<br>
+      💡 Hints unlock as time runs out
+    </div>
+  </div>
+
+  <!-- ═══ PLAYER: WAITING ═══ -->
+  <div class="screen" id="player-waiting">
+    <div class="card" style="text-align:center;padding:32px 20px">
+      <div style="font-size:56px;margin-bottom:12px;animation:pulse 1.5s infinite">⏳</div>
+      <div style="font-family:'Fredoka One',cursive;font-size:22px;color:var(--neon)" id="pw-name">Hello!</div>
+      <div style="color:var(--muted);margin-top:8px;font-size:14px">Waiting for host to start the game…</div>
+      <div style="margin-top:16px;font-size:13px;color:var(--muted)">Room: <span id="pw-room"
+          style="color:var(--yellow);font-weight:700">—</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">👥 Players in Room</div>
+      <div id="pw-player-list">
+        <div class="empty"><span class="icon">⌛</span>Loading…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PLAYER: GAME ═══ -->
+  <div class="screen" id="player-game">
+    <div class="q-progress">
+      <div class="label" id="pg-q-label">Q 1/80</div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="pg-progress" style="width:1%"></div>
+      </div>
+      <div style="font-family:'Fredoka One',cursive;color:var(--accent);font-size:16px" id="pg-score">0 pts</div>
+    </div>
+    <div class="solved-bar">
+      <div class="solved-text">✅ Solved</div>
+      <div class="solved-count" id="pg-solved-count">0 / 80</div>
+    </div>
+    <div class="timer-ring-wrap">
+      <svg class="timer-svg" width="86" height="86" viewBox="0 0 86 86">
+        <circle class="timer-bg" cx="43" cy="43" r="36" />
+        <circle class="timer-arc" id="timer-arc" cx="43" cy="43" r="36" stroke-dasharray="226.19"
+          stroke-dashoffset="0" />
+        <text class="timer-text" x="43" y="43" id="timer-text">30</text>
+      </svg>
+    </div>
+    <div class="chances" id="chances-display">
+      <span class="heart">❤️</span><span class="heart">❤️</span><span class="heart">❤️</span>
+    </div>
+    <div id="game-card" class="card" style="padding:14px">
+      <div class="q-number" id="pg-q-number">QUESTION 1 OF 80</div>
+      <div class="emoji-display" id="pg-emoji">🎮</div>
+      <div class="hint-box">
+        <div class="hint-row unlocked" id="hint-row-0">
+          <span class="hint-icon">🏷️</span>
+          <span class="hint-label">Category</span>
+          <span class="hint-value" id="hint-0">—</span>
+        </div>
+        <div class="hint-row locked" id="hint-row-1">
+          <span class="hint-icon">🔤</span>
+          <span class="hint-label">Letters</span>
+          <span class="hint-value masked" id="hint-1">_ _ _</span>
+        </div>
+        <div class="hint-row locked" id="hint-row-2">
+          <span class="hint-icon">🔑</span>
+          <span class="hint-label">First + Last</span>
+          <span class="hint-value masked" id="hint-2">? … ?</span>
+        </div>
+      </div>
+      <div id="answer-section">
+        <div class="answer-area">
+          <input type="text" id="player-answer" placeholder="Type your answer…" autocomplete="off" autocorrect="off"
+            spellcheck="false" style="margin-bottom:0" />
+          <button onclick="submitAnswer()">↩</button>
+        </div>
+        <button class="btn btn-primary" style="margin-top:10px" onclick="submitAnswer()">Submit Answer</button>
+      </div>
+      <div id="result-section" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- ═══ PLAYER: GAME OVER ═══ -->
+  <div class="screen" id="player-gameover">
+    <div class="hero" style="padding-bottom:16px">
+      <h1>🏁 Game Over!</h1>
+      <p id="final-rank-msg">Great game!</p>
+    </div>
+    <div class="card" style="text-align:center;padding:24px">
+      <div style="font-size:52px;margin-bottom:8px" id="go-emoji">🎉</div>
+      <div style="font-family:'Fredoka One',cursive;font-size:40px;color:var(--accent)" id="go-score">0</div>
+      <div style="color:var(--muted);font-size:14px">Final Score</div>
+      <div style="font-family:'Fredoka One',cursive;font-size:18px;color:var(--neon);margin-top:10px" id="go-rank">Rank
+        #—</div>
+    </div>
+    <div class="card" style="padding:14px">
+      <div class="card-title">📊 Your Stats</div>
+      <div id="go-stats"></div>
+    </div>
+    <button class="btn btn-outline" onclick="playerGoHome()">🏠 Back to Join</button>
+  </div>
+
+  <script>
+    // ══════════════════════════════════════════════════════════════
+    // 80 EMOJI WORD PUZZLES
+    // ══════════════════════════════════════════════════════════════
+    const PUZZLES = [
+      { emojis: ['⭐', '🐟'], answer: 'STARFISH', hint: 'Sea creature' },
+      { emojis: ['🦋'], answer: 'BUTTERFLY', hint: 'Insect' },
+      { emojis: ['🔥', '🪰'], answer: 'FIREFLY', hint: 'Glowing insect' },
+      { emojis: ['🌊', '🐚'], answer: 'SEASHELL', hint: 'Beach find' },
+      { emojis: ['🐝', '🏠'], answer: 'BEEHIVE', hint: 'Insect home' },
+      { emojis: ['🍯', '🌙'], answer: 'HONEYMOON', hint: 'Post-wedding trip' },
+      { emojis: ['🌳', '🐦'], answer: 'WOODPECKER', hint: 'Drumming bird' },
+      { emojis: ['🐱', '🐟'], answer: 'CATFISH', hint: 'Freshwater fish' },
+      { emojis: ['🐴', '🪰'], answer: 'HORSEFLY', hint: 'Biting insect' },
+      { emojis: ['🌿', '🦘'], answer: 'GRASSHOPPER', hint: 'Leaping insect' },
+      { emojis: ['🐟', '💰'], answer: 'GOLDFISH', hint: 'Popular pet' },
+      { emojis: ['🦈', '🏊'], answer: 'SWIMMER', hint: 'Water sport person' },
+      { emojis: ['🦅', '👁️'], answer: 'EAGLE EYE', hint: 'Sharp vision phrase' },
+      { emojis: ['🌸', '☀️'], answer: 'SUNFLOWER', hint: 'Tall yellow plant' },
+      { emojis: ['🐸', '🦵'], answer: 'LEAPFROG', hint: "Children's game" },
+      { emojis: ['🚪', '🔔'], answer: 'DOORBELL', hint: 'Entry alert' },
+      { emojis: ['📚', '🪱'], answer: 'BOOKWORM', hint: 'Avid reader' },
+      { emojis: ['☀️', '🌅'], answer: 'SUNRISE', hint: 'Morning event' },
+      { emojis: ['🌙', '💡'], answer: 'MOONLIGHT', hint: 'Night glow' },
+      { emojis: ['❄️', '⚽'], answer: 'SNOWBALL', hint: 'Winter game' },
+      { emojis: ['🏖️', '🏰'], answer: 'SANDCASTLE', hint: 'Beach structure' },
+      { emojis: ['⛺', '🔥'], answer: 'CAMPFIRE', hint: 'Outdoor flame' },
+      { emojis: ['🗺️', '📌'], answer: 'LANDMARK', hint: 'Famous place' },
+      { emojis: ['🏁', '🐴'], answer: 'RACEHORSE', hint: 'Track animal' },
+      { emojis: ['💧', '🍂'], answer: 'WATERFALL', hint: 'Cascading water' },
+      { emojis: ['🌊', '🪵'], answer: 'DRIFTWOOD', hint: 'Floating timber' },
+      { emojis: ['⬛', '📋'], answer: 'BLACKBOARD', hint: 'Classroom surface' },
+      { emojis: ['🌙', '🌊'], answer: 'TIDAL WAVE', hint: 'Ocean surge' },
+      { emojis: ['🦶', '⚽'], answer: 'FOOTBALL', hint: 'Global sport' },
+      { emojis: ['🌧️', '🌈'], answer: 'RAINBOW', hint: 'Colourful arc' },
+      { emojis: ['⚛️', '🔬'], answer: 'MICROSCOPE', hint: 'Lab tool' },
+      { emojis: ['🧲', '⚡'], answer: 'MAGNETISM', hint: 'Physics force' },
+      { emojis: ['🌍', '🔭'], answer: 'TELESCOPE', hint: 'Space viewer' },
+      { emojis: ['🧪', '💥'], answer: 'EXPLOSION', hint: 'Rapid reaction' },
+      { emojis: ['🔋', '⚡'], answer: 'ELECTRICITY', hint: 'Power form' },
+      { emojis: ['🌡️', '🌡️'], answer: 'TEMPERATURE', hint: 'Heat measure' },
+      { emojis: ['🦴', '💪'], answer: 'SKELETON', hint: 'Body framework' },
+      { emojis: ['🫀', '❤️'], answer: 'HEARTBEAT', hint: 'Vital sign' },
+      { emojis: ['🫧', '💧'], answer: 'EVAPORATION', hint: 'Water cycle stage' },
+      { emojis: ['🌙', '🪨'], answer: 'METEORITE', hint: 'Space rock' },
+      { emojis: ['🔢', '🧮'], answer: 'ARITHMETIC', hint: 'Basic maths' },
+      { emojis: ['📐', '📏'], answer: 'GEOMETRY', hint: 'Shapes branch' },
+      { emojis: ['🐢', '🐇'], answer: 'EVOLUTION', hint: "Darwin's theory" },
+      { emojis: ['☀️', '🌍', '🔄'], answer: 'REVOLUTION', hint: 'Orbit or overthrow' },
+      { emojis: ['🦠', '🤧'], answer: 'INFECTION', hint: 'Germ spread' },
+      { emojis: ['🗻', '🌋'], answer: 'VOLCANO', hint: 'Erupting mountain' },
+      { emojis: ['🏜️', '🌵'], answer: 'DESERT', hint: 'Dry landscape' },
+      { emojis: ['🌊', '🏝️'], answer: 'ARCHIPELAGO', hint: 'Island chain' },
+      { emojis: ['🌧️', '🌿'], answer: 'RAINFOREST', hint: 'Tropical biome' },
+      { emojis: ['❄️', '🌍'], answer: 'ANTARCTICA', hint: 'Southernmost continent' },
+      { emojis: ['🌊', '🧂'], answer: 'OCEAN', hint: 'Vast saltwater body' },
+      { emojis: ['🏔️', '🌨️'], answer: 'AVALANCHE', hint: 'Snow slide' },
+      { emojis: ['🌍', '🌐'], answer: 'EQUATOR', hint: 'Middle line of Earth' },
+      { emojis: ['🐊', '🌿'], answer: 'SWAMP', hint: 'Wetland area' },
+      { emojis: ['🗺️', '🧭'], answer: 'NAVIGATION', hint: 'Route finding' },
+      { emojis: ['👑', '🏰'], answer: 'MONARCHY', hint: 'Royal government' },
+      { emojis: ['⚔️', '🛡️'], answer: 'MEDIEVAL', hint: 'Middle Ages era' },
+      { emojis: ['🏛️', '🪨'], answer: 'PARLIAMENT', hint: 'Governing house' },
+      { emojis: ['🔥', '📜'], answer: 'MANUSCRIPT', hint: 'Ancient document' },
+      { emojis: ['🌍', '✈️'], answer: 'EXPEDITION', hint: 'Exploratory journey' },
+      { emojis: ['💰', '🏦'], answer: 'TREASURY', hint: 'Government funds' },
+      { emojis: ['👨‍⚖️', '⚖️'], answer: 'JUDICIARY', hint: 'Court system' },
+      { emojis: ['🎭', '🎪'], answer: 'CARNIVAL', hint: 'Festive event' },
+      { emojis: ['🏺', '🏛️'], answer: 'ARCHAEOLOGY', hint: 'Past-digging study' },
+      { emojis: ['📿', '🪆'], answer: 'HERITAGE', hint: 'Cultural legacy' },
+      { emojis: ['💎', '💍'], answer: 'DIAMOND RING', hint: 'Engagement gift' },
+      { emojis: ['🌙', '😴'], answer: 'SLEEPWALK', hint: 'Night movement' },
+      { emojis: ['👁️', '🐝'], answer: 'EYEBROW', hint: 'Face feature' },
+      { emojis: ['👂', '🥁'], answer: 'EARDRUM', hint: 'Hearing organ part' },
+      { emojis: ['💇', '✂️'], answer: 'HAIRCUT', hint: 'Salon service' },
+      { emojis: ['🫁', '💨'], answer: 'BREATHE', hint: 'Respiratory action' },
+      { emojis: ['🌐', '🔗'], answer: 'HYPERLINK', hint: 'Web clickable text' },
+      { emojis: ['🔋', '🔌'], answer: 'CHARGER', hint: 'Power replenisher' },
+      { emojis: ['🌙', '🍯'], answer: 'HONEYDEW', hint: 'Sweet melon' },
+      { emojis: ['🧊', '💎'], answer: 'CRYSTAL', hint: 'Clear mineral' },
+      { emojis: ['📸', '🖼️'], answer: 'PHOTOGRAPH', hint: 'Captured image' },
+      { emojis: ['🔍', '🕵️'], answer: 'DETECTIVE', hint: 'Mystery solver' },
+      { emojis: ['🎭', '🎬'], answer: 'SCREENPLAY', hint: 'Film script' },
+      { emojis: ['🤝', '🤲'], answer: 'HANDSHAKE', hint: 'Greeting gesture' },
+      { emojis: ['🌙', '🌟'], answer: 'STARLIGHT', hint: 'Night sky glow' }
+    ];
+
+    // ══════════════════
+    // CONSTANTS
+    // ══════════════════
+    const HOST_PASS = 'teacher2024';
+    const TIMER_MAX = 30;
+    const HINT2_AT = 12;
+    const HINT3_AT = 5;
+    const DEDUCT_PTS = 5;
+
+    // ══════════════════
+    // STATE
+    // ══════════════════
+    let currentTab = 'host';
+    let db = null;       // Firebase Database instance
+    let roomRef = null;       // ref to /rooms/{roomCode}
+    let myListeners = [];         // active Firebase listeners to clean up
+    let roomCode = null;       // current room code
+    let playerState = null;
+    let gameTimer = null;
+    let timerSeconds = TIMER_MAX;
+    let playerAborted = false;
+    let playerTimerInterval = null;
+    let playerTimerSecs = TIMER_MAX;
+    let autoNextTimer = null;
+    let modalAction = null;
+    let hostQuestions = null;       // host keeps questions in memory
+    let localPlayers = {};         // host's local mirror of players
+    let localCurrentQ = 0;
+    let localStatus = 'lobby';
+
+    // ══════════════════════════════════════════════════════════════
+    // FIREBASE SETUP
+    // ══════════════════════════════════════════════════════════════
+    function initFirebase(databaseURL) {
+      try {
+        // Re-initialize if needed
+        if (firebase.apps.length > 0) {
+          firebase.apps.forEach(app => app.delete());
+        }
+      } catch (e) { }
+      const config = {
+        apiKey: 'AIzaSyPlaceholder',   // Not needed for Realtime DB with test rules
+        databaseURL: databaseURL.trim().replace(/\/$/, '')
+      };
+      try {
+        firebase.initializeApp(config);
+        db = firebase.database();
+        // Test connection
+        db.ref('.info/connected').on('value', snap => {
+          const connected = snap.val();
+          updateConnStatus(connected, 'conn-status');
+          updateConnStatus(connected, 'player-conn-status');
+        });
+        return true;
+      } catch (e) {
+        showToast('❌ Firebase init failed: ' + e.message, 'error');
+        return false;
+      }
+    }
+
+    function saveFirebaseConfig() {
+      const url = document.getElementById('firebase-url').value.trim();
+      if (!url || !url.includes('firebaseio.com')) {
+        showToast('❌ Enter a valid Firebase database URL', 'error');
+        return;
+      }
+      localStorage.setItem('fbUrl', url);
+      document.getElementById('player-firebase-url').value = url;
+      initFirebase(url);
+      showToast('🔥 Firebase connecting…', 'info');
+    }
+
+    function saveFirebaseConfigPlayer() {
+      const url = document.getElementById('player-firebase-url').value.trim();
+      if (!url || !url.includes('firebaseio.com')) {
+        showToast('❌ Enter a valid Firebase database URL', 'error');
+        return;
+      }
+      localStorage.setItem('fbUrl', url);
+      document.getElementById('firebase-url').value = url;
+      initFirebase(url);
+      showToast('🔥 Firebase connecting…', 'info');
+    }
+
+    function updateConnStatus(connected, elId) {
+      const el = document.getElementById(elId);
+      if (!el) return;
+      if (connected) {
+        el.innerHTML = '<span class="conn-badge connected"><span class="conn-dot"></span>Connected to Firebase ✅</span>';
+      } else {
+        el.innerHTML = '<span class="conn-badge disconnected"><span class="conn-dot"></span>Disconnected — check URL</span>';
+      }
+    }
+
+    // ══════════════════
+    // TABS & SCREENS
+    // ══════════════════
+    function switchTab(tab) {
+      currentTab = tab;
+      document.getElementById('tab-host').classList.toggle('active', tab === 'host');
+      document.getElementById('tab-player').classList.toggle('active', tab === 'player');
+      if (tab === 'host') {
+        if (!roomCode) showScreen('host-login');
+        else if (localStatus === 'lobby') showScreen('host-lobby');
+        else if (localStatus === 'playing') showScreen('host-dashboard');
+        else showScreen('host-gameover');
+      } else {
+        if (!playerState) showScreen('player-join');
+        else if (playerState.joined && playerState.currentQ < 0) showScreen('player-waiting');
+        else if (playerState.currentQ >= 0) showScreen('player-game');
+        else showScreen('player-join');
+      }
+    }
+
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      const el = document.getElementById(id);
+      if (el) { el.classList.add('active'); el.classList.add('anim-slide'); setTimeout(() => el.classList.remove('anim-slide'), 400); }
+    }
+
+    // ══════════════════
+    // TOAST
+    // ══════════════════
+    let _tt = null;
+    function showToast(msg, type = 'info') {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.className = `toast ${type} show`;
+      if (_tt) clearTimeout(_tt);
+      _tt = setTimeout(() => t.classList.remove('show'), 2800);
+    }
+
+    // ══════════════════
+    // MODAL
+    // ══════════════════
+    function confirmTerminate() {
+      document.getElementById('modal-title').textContent = '⚠️ Terminate Room';
+      document.getElementById('modal-body').textContent = 'This will end the session for ALL players. This cannot be undone.';
+      modalAction = 'terminate';
+      document.getElementById('modal').classList.add('open');
+    }
+    function confirmEndGame() {
+      document.getElementById('modal-title').textContent = '🏁 End Game Now?';
+      document.getElementById('modal-body').textContent = 'This will stop the game immediately and show final results.';
+      modalAction = 'endgame';
+      document.getElementById('modal').classList.add('open');
+    }
+    function closeModal() { document.getElementById('modal').classList.remove('open'); }
+    function modalConfirm() {
+      closeModal();
+      if (modalAction === 'terminate') terminateRoom();
+      if (modalAction === 'endgame') hostEndGame();
+    }
+
+    // ══════════════════
+    // UTILS
+    // ══════════════════
+    function esc(s) {
+      if (!s) return '';
+      return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function shuffleAll() {
+      const arr = [...PUZZLES];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr.slice(0, 80);
+    }
+    function genRoomCode() {
+      const w = ['TIGER', 'BLAZE', 'ORBIT', 'PIXEL', 'SPARK', 'FLARE', 'QUEST', 'NOVA', 'ECHO', 'STORM'];
+      return w[Math.floor(Math.random() * w.length)] + Math.floor(100 + Math.random() * 900);
+    }
+    function detachListeners() {
+      myListeners.forEach(({ ref, evt, fn }) => ref.off(evt, fn));
+      myListeners = [];
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    //  HOST LOGIC
+    // ══════════════════════════════════════════════════════════════
+    function hostLogin() {
+      if (!db) { showToast('❌ Connect Firebase first!', 'error'); return; }
+      const user = document.getElementById('host-username').value.trim();
+      const pass = document.getElementById('host-password').value.trim();
+      if (!user || !pass) { showToast('Enter username & password', 'error'); return; }
+      if (pass !== HOST_PASS) { showToast('❌ Wrong password!', 'error'); return; }
+
+      roomCode = genRoomCode();
+      localStatus = 'lobby';
+      localPlayers = {};
+      hostQuestions = shuffleAll();
+
+      // Write initial room to Firebase
+      roomRef = db.ref('rooms/' + roomCode);
+      roomRef.set({
+        hostName: user,
+        status: 'lobby',
+        currentQ: 0,
+        questionStartTime: null,
+        totalQPlayed: 0,
+        players: {},
+        // Store questions without answers visible to players
+        questionCount: hostQuestions.length
+      }).then(() => {
+        document.getElementById('host-room-code').textContent = roomCode;
+        showScreen('host-lobby');
+        renderLobbyPlayers();
+        listenAsHost();
+        // Set onDisconnect cleanup
+        roomRef.onDisconnect().update({ status: 'terminated' });
+      }).catch(e => showToast('Firebase write error: ' + e.message, 'error'));
+    }
+
+    function listenAsHost() {
+      detachListeners();
+
+      // Listen for player joins/updates
+      const playersRef = roomRef.child('players');
+      const playersFn = snap => {
+        localPlayers = snap.val() || {};
+        if (localStatus === 'lobby') {
+          renderLobbyPlayers();
+          updateStartBtn();
+        } else if (localStatus === 'playing') {
+          renderDashboard();
+        }
+      };
+      playersRef.on('value', playersFn);
+      myListeners.push({ ref: playersRef, evt: 'value', fn: playersFn });
+
+      // Listen for player actions (answers, timeouts, left events)
+      const actionsRef = roomRef.child('actions');
+      const actionsFn = snap => {
+        const actions = snap.val();
+        if (!actions) return;
+        Object.entries(actions).forEach(([key, action]) => {
+          if (action.processed) return;
+          // Mark processed
+          actionsRef.child(key).update({ processed: true });
+          handleHostAction(action.type, action.data);
+        });
+      };
+      actionsRef.on('value', actionsFn);
+      myListeners.push({ ref: actionsRef, evt: 'value', fn: actionsFn });
+    }
+
+    function handleHostAction(type, data) {
+      if (type === 'PLAYER_JOIN') {
+        if (data.roomCode !== roomCode) return;
+        if (localStatus !== 'lobby') {
+          // Send join error
+          roomRef.child(`playerMessages/${data.playerId}`).push({
+            type: 'JOIN_ERROR', reason: 'Game already started', ts: Date.now()
+          });
+          return;
+        }
+        localPlayers[data.playerId] = {
+          id: data.playerId, name: data.name,
+          score: 0, chances: 3, status: 'online',
+          currentAnswer: null, answerStatus: 'waiting',
+          correctCount: 0, wrongCount: 0, timeoutCount: 0, deductCount: 0
+        };
+        // Write updated player list
+        roomRef.child('players').set(localPlayers);
+        // Send join OK
+        roomRef.child(`playerMessages/${data.playerId}`).push({
+          type: 'JOIN_OK', roomCode, playerId: data.playerId, ts: Date.now()
+        });
+      }
+
+      if (type === 'PLAYER_ANSWER') {
+        if (data.roomCode !== roomCode) return;
+        const player = localPlayers[data.playerId];
+        if (!player || player.answerStatus === 'correct') return;
+        const q = hostQuestions[localCurrentQ];
+        if (!q) return;
+        const correct = data.answer.toUpperCase().replace(/\s+/g, ' ').trim() === q.answer;
+        if (correct) {
+          const taken = (Date.now() - (data.questionStartTime || Date.now())) / 1000;
+          const bonus = Math.max(0, Math.floor((TIMER_MAX - taken) / (TIMER_MAX / 5)));
+          player.score += 10 + bonus;
+          player.answerStatus = 'correct';
+          player.currentAnswer = data.answer;
+          player.correctCount++;
+          roomRef.child('players/' + data.playerId).set(player);
+          roomRef.child(`playerMessages/${data.playerId}`).push({
+            type: 'ANSWER_RESULT', playerId: data.playerId, correct: true,
+            score: player.score, bonus, ts: Date.now()
+          });
+        } else {
+          player.chances = Math.max(0, (player.chances || 3) - 1);
+          player.currentAnswer = data.answer;
+          player.wrongCount++;
+          let deducted = false;
+          if (player.chances === 0) {
+            player.score = Math.max(0, player.score - DEDUCT_PTS);
+            player.answerStatus = 'failed';
+            player.deductCount++;
+            deducted = true;
+          } else {
+            player.answerStatus = 'wrong';
+          }
+          roomRef.child('players/' + data.playerId).set(player);
+          roomRef.child(`playerMessages/${data.playerId}`).push({
+            type: 'ANSWER_RESULT', playerId: data.playerId, correct: false,
+            chances: player.chances, score: player.score, deducted, ts: Date.now()
+          });
+        }
+        renderDashboard();
+      }
+
+      if (type === 'PLAYER_TIMEOUT') {
+        if (data.roomCode !== roomCode) return;
+        const p = localPlayers[data.playerId];
+        if (!p) return;
+        p.answerStatus = 'timeout'; p.timeoutCount++;
+        roomRef.child('players/' + data.playerId).set(p);
+        renderDashboard();
+      }
+
+      if (type === 'PLAYER_LEFT') {
+        if (data.roomCode !== roomCode) return;
+        const p = localPlayers[data.playerId];
+        if (!p) return;
+        p.status = data.aborted ? 'aborted' : 'left';
+        roomRef.child('players/' + data.playerId).set(p);
+        renderDashboard();
+        showToast(`⚠️ ${p.name} ${data.aborted ? 'aborted session' : 'disconnected'}`, 'error');
+      }
+    }
+
+    // ── HOST GAME FLOW ──
+    function hostStartGame() {
+      if (!roomRef) return;
+      if (Object.keys(localPlayers).length === 0) { showToast('No players in room!', 'error'); return; }
+
+      localStatus = 'playing';
+      localCurrentQ = 0;
+      const now = Date.now();
+
+      // Reset all players
+      Object.keys(localPlayers).forEach(id => {
+        localPlayers[id].chances = 3;
+        localPlayers[id].answerStatus = 'waiting';
+        localPlayers[id].currentAnswer = null;
+      });
+
+      // Write game start to Firebase — players listen for 'status' change
+      const q = hostQuestions[0];
+      roomRef.update({
+        status: 'playing',
+        currentQ: 0,
+        questionStartTime: now,
+        totalQPlayed: 0,
+        players: localPlayers,
+        // Current question visible to players (no answers)
+        currentQuestion: { emojis: q.emojis, hint: q.hint, index: 0 }
+      });
+
+      showScreen('host-dashboard');
+      renderDashboard();
+      startHostTimer();
+    }
+
+    function startHostTimer() {
+      clearInterval(gameTimer);
+      timerSeconds = TIMER_MAX;
+      document.getElementById('hd-timer').textContent = timerSeconds;
+      gameTimer = setInterval(() => {
+        timerSeconds--;
+        document.getElementById('hd-timer').textContent = timerSeconds;
+        if (timerSeconds <= 0) { clearInterval(gameTimer); hostNextQuestion(); }
+      }, 1000);
+    }
+
+    function hostNextQuestion() {
+      clearInterval(gameTimer);
+      const q = hostQuestions[localCurrentQ];
+      if (!q) return;
+
+      // Reveal answer to all players
+      roomRef.child('broadcast').push({ type: 'QUESTION_REVEAL', answer: q.answer, ts: Date.now() });
+
+      if (localCurrentQ >= 79) {
+        setTimeout(() => hostEndGame(), 3000);
+        return;
+      }
+
+      localCurrentQ++;
+      const now = Date.now();
+
+      // Reset player states for new question
+      Object.keys(localPlayers).forEach(id => {
+        if (localPlayers[id].status === 'online') {
+          localPlayers[id].chances = 3;
+          localPlayers[id].answerStatus = 'waiting';
+          localPlayers[id].currentAnswer = null;
+        }
+      });
+
+      const nextQ = hostQuestions[localCurrentQ];
+      roomRef.update({
+        totalQPlayed: firebase.database.ServerValue.increment(1)
+      });
+
+      setTimeout(() => {
+        roomRef.update({
+          currentQ: localCurrentQ,
+          questionStartTime: now,
+          players: localPlayers,
+          currentQuestion: { emojis: nextQ.emojis, hint: nextQ.hint, index: localCurrentQ }
+        });
+        renderDashboard();
+        startHostTimer();
+      }, 3000);
+    }
+
+    function hostForceNext() { clearInterval(gameTimer); hostNextQuestion(); }
+
+    function hostEndGame() {
+      clearInterval(gameTimer);
+      localStatus = 'gameover';
+      roomRef.update({ status: 'gameover', players: localPlayers });
+      renderFinalDashboard({ players: localPlayers, totalQPlayed: localCurrentQ + 1 });
+      showScreen('host-gameover');
+    }
+
+    function terminateRoom() {
+      clearInterval(gameTimer);
+      if (roomRef) {
+        roomRef.update({ status: 'terminated' });
+        setTimeout(() => { if (roomRef) roomRef.remove(); }, 2000);
+      }
+      detachListeners();
+      roomRef = null; roomCode = null; localPlayers = {}; localStatus = 'lobby';
+      showScreen('host-login');
+      showToast('🗑️ Room terminated', 'info');
+    }
+
+    function hostNewGame() {
+      clearInterval(gameTimer); detachListeners();
+      roomRef = null; roomCode = null; localPlayers = {}; localStatus = 'lobby';
+      showScreen('host-login');
+    }
+
+    // ── HOST RENDER ──
+    function renderLobbyPlayers() {
+      const el = document.getElementById('lobby-player-list');
+      const players = Object.values(localPlayers);
+      el.innerHTML = players.length === 0
+        ? '<div class="empty"><span class="icon">⏳</span>Waiting for players…</div>'
+        : players.map(p => `<div class="score-row">
+        <div style="font-size:22px">🎮</div>
+        <div style="flex:1;padding:0 12px;font-weight:700">${esc(p.name)}</div>
+        <span class="badge badge-waiting">Ready</span></div>`).join('');
+      document.getElementById('host-room-code').textContent = roomCode || '----';
+      updateStartBtn();
+    }
+
+    function updateStartBtn() {
+      const btn = document.getElementById('start-game-btn');
+      if (!btn) return;
+      const n = Object.keys(localPlayers).length;
+      btn.disabled = n === 0;
+      btn.textContent = n > 0 ? `▶️ Start Game (${n} players)` : '▶️ Start Game';
+    }
+
+    function renderDashboard() {
+      const q = hostQuestions ? hostQuestions[localCurrentQ] : null;
+      document.getElementById('hd-q-num').textContent = localCurrentQ + 1;
+      document.getElementById('hd-q-label').textContent = `Question ${localCurrentQ + 1} of 80`;
+      document.getElementById('hd-emoji').textContent = q ? q.emojis.join('  ') : '—';
+      document.getElementById('hd-player-count').textContent = Object.keys(localPlayers).length;
+      if (q) {
+        document.getElementById('hd-answer').textContent = q.answer;
+        const hb = document.getElementById('hd-hint-badge');
+        const ht = document.getElementById('hd-hint-text');
+        if (hb && ht) {
+          hb.style.display = 'inline-flex';
+          ht.textContent = `${q.hint}  •  ${q.answer.length} letters  •  Starts with "${q.answer[0]}"`;
+        }
+      }
+      renderScoresList();
+      renderAnswersList();
+      renderPlayersList();
+    }
+
+    function renderScoresList() {
+      const el = document.getElementById('scores-list');
+      if (!el) return;
+      const sorted = Object.values(localPlayers).sort((a, b) => b.score - a.score);
+      if (!sorted.length) { el.innerHTML = '<div class="empty">No players yet</div>'; return; }
+      el.innerHTML = sorted.map((p, i) => `<div class="score-row">
+    <div class="rank ${i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''}">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '#' + (i + 1)}</div>
+    <div class="name">${esc(p.name)}<br><small style="color:var(--muted);font-weight:400">${p.status === 'aborted' ? '🚫 Aborted' : p.status === 'left' ? '🔌 Left' : '✅ Active'}</small></div>
+    <div class="pts">${p.score}</div></div>`).join('');
+    }
+
+    function renderAnswersList() {
+      const el = document.getElementById('answers-list');
+      if (!el) return;
+      const players = Object.values(localPlayers);
+      if (!players.length) { el.innerHTML = '<div class="empty">No players yet</div>'; return; }
+      el.innerHTML = players.map(p => {
+        const st = p.answerStatus;
+        const badge = st === 'correct' ? 'badge-correct' : st === 'timeout' ? 'badge-timeout' : st === 'waiting' ? 'badge-waiting' : st === 'failed' ? 'badge-failed' : 'badge-wrong';
+        const label = st === 'correct' ? '✅ Correct' : st === 'timeout' ? '⏱️ Timeout' : st === 'waiting' ? '⌛ Waiting' : st === 'failed' ? '💔 Failed −5' : '❌ Wrong';
+        return `<div class="score-row">
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:13px">${esc(p.name)}</div>
+        <div style="color:var(--muted);font-size:12px;margin-top:2px">${p.currentAnswer ? `"${esc(p.currentAnswer)}"` : 'No answer yet'}</div>
+      </div><span class="badge ${badge}">${label}</span></div>`;
+      }).join('');
+    }
+
+    function renderPlayersList() {
+      const el = document.getElementById('players-list');
+      if (!el) return;
+      const players = Object.values(localPlayers);
+      if (!players.length) { el.innerHTML = '<div class="empty" style="padding:20px">No players</div>'; return; }
+      el.innerHTML = `<table class="player-table">
+    <thead><tr><th>Player</th><th>Status</th><th>❤️</th><th>✅</th><th>💔</th></tr></thead>
+    <tbody>${players.map(p => `<tr>
+      <td style="font-weight:700;font-size:13px">${esc(p.name)}</td>
+      <td><span class="status-dot ${p.status}"></span>${p.status}</td>
+      <td>${p.chances}</td>
+      <td style="color:var(--green)">${p.correctCount}</td>
+      <td style="color:var(--red)">${p.deductCount || 0}</td>
+    </tr>`).join('')}</tbody></table>`;
+    }
+
+    function showDashTab(tab, e) {
+      document.querySelectorAll('.dash-panel').forEach(p => p.style.display = 'none');
+      document.querySelectorAll('.dash-tab').forEach(t => t.classList.remove('active'));
+      document.getElementById('dash-' + tab).style.display = 'block';
+      if (e && e.target) e.target.classList.add('active');
+    }
+
+    // ── HOST FINAL DASHBOARD ──
+    function renderFinalDashboard(state) {
+      const sorted = Object.values(state.players).sort((a, b) => b.score - a.score);
+      const qPlayed = state.totalQPlayed || (localCurrentQ + 1);
+      document.getElementById('host-go-sub').innerHTML =
+        `Completed after <strong style="color:var(--neon)">${qPlayed}</strong> questions · ${sorted.length} players`;
+      const top3 = sorted.slice(0, 3);
+      const order = [top3[1], top3[0], top3[2]].filter(Boolean);
+      const cls = ['second', 'first', 'third'];
+      const nums = ['2', '1', '3'];
+      document.getElementById('host-podium').innerHTML = order.map((p, i) => `
+    <div class="podium-slot">
+      <div style="font-size:13px;font-weight:800;text-align:center;color:var(--text);max-width:80px;word-break:break-word">${esc(p.name)}</div>
+      <div style="font-family:'Fredoka One',cursive;color:var(--accent);font-size:18px">${p.score}</div>
+      <div class="podium-block ${cls[i]}"><div class="podium-name">${nums[i]}</div></div>
+    </div>`).join('');
+      document.getElementById('host-final-scores').innerHTML = sorted.map((p, i) => `
+    <div class="score-row">
+      <div class="rank ${i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''}">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '#' + (i + 1)}</div>
+      <div class="name">${esc(p.name)}<br>
+        <small style="color:var(--muted);font-weight:400">✅ ${p.correctCount} correct &nbsp;💔 ${p.deductCount || 0} deducted</small></div>
+      <div class="pts">${p.score}</div>
+    </div>`).join('');
+      const totalPlayers = sorted.length || 1;
+      const avgScore = Math.round(sorted.reduce((s, p) => s + p.score, 0) / totalPlayers);
+      const avgCorrect = Math.round(sorted.reduce((s, p) => s + p.correctCount, 0) / totalPlayers);
+      const totalDeductions = sorted.reduce((s, p) => s + (p.deductCount || 0), 0);
+      document.getElementById('host-final-perf').innerHTML = `
+    <div class="final-stat-grid">
+      <div class="final-stat"><div class="fs-val">${qPlayed}</div><div class="fs-label">Questions Played</div></div>
+      <div class="final-stat"><div class="fs-val">${totalPlayers}</div><div class="fs-label">Total Players</div></div>
+      <div class="final-stat"><div class="fs-val">${avgScore}</div><div class="fs-label">Average Score</div></div>
+      <div class="final-stat"><div class="fs-val">${avgCorrect}</div><div class="fs-label">Avg Correct</div></div>
+      <div class="final-stat"><div class="fs-val" style="color:var(--red)">${totalDeductions}</div><div class="fs-label">Total Deductions</div></div>
+      <div class="final-stat"><div class="fs-val" style="color:var(--green)">${sorted[0] ? sorted[0].score : 0}</div><div class="fs-label">Top Score</div></div>
+    </div>
+    <div style="margin-top:12px">
+    ${sorted.map((p, i) => `<div class="score-row">
+      <div style="font-size:14px;font-weight:700;flex:1">${i + 1}. ${esc(p.name)}</div>
+      <div style="font-size:12px;color:var(--muted);text-align:right">✅${p.correctCount} &nbsp;❌${p.wrongCount} &nbsp;⏱️${p.timeoutCount} &nbsp;<span style="color:var(--red)">💔×${p.deductCount || 0}</span></div>
+    </div>`).join('')}
+    </div>`;
+      const topScore = sorted[0];
+      const topAccurate = [...sorted].sort((a, b) => b.correctCount - a.correctCount)[0];
+      const topStreak = [...sorted].sort((a, b) => (b.correctCount / (b.correctCount + b.wrongCount + b.timeoutCount + .001)) - (a.correctCount / (a.correctCount + a.wrongCount + a.timeoutCount + .001)))[0];
+      const leastDeduct = sorted.filter(p => p.deductCount === 0);
+      document.getElementById('host-final-mvp').innerHTML = `
+    ${topScore ? `<div class="mvp-card"><div class="mvp-icon">🏆</div><div><div class="mvp-name">${esc(topScore.name)}</div><div class="mvp-desc">Highest Score</div></div><div class="mvp-val">${topScore.score} pts</div></div>` : ''}
+    ${topAccurate ? `<div class="mvp-card"><div class="mvp-icon">🎯</div><div><div class="mvp-name">${esc(topAccurate.name)}</div><div class="mvp-desc">Most Correct Answers</div></div><div class="mvp-val">${topAccurate.correctCount} ✅</div></div>` : ''}
+    ${topStreak ? `<div class="mvp-card"><div class="mvp-icon">⚡</div><div><div class="mvp-name">${esc(topStreak.name)}</div><div class="mvp-desc">Best Accuracy Rate</div></div><div class="mvp-val">${Math.round(topStreak.correctCount / (topStreak.correctCount + topStreak.wrongCount + topStreak.timeoutCount + .001) * 100)}%</div></div>` : ''}
+    ${leastDeduct.length > 0 ? `<div class="mvp-card" style="border-color:rgba(6,214,160,.35);background:linear-gradient(135deg,rgba(6,214,160,.1),rgba(6,214,160,.05))"><div class="mvp-icon">💚</div><div><div class="mvp-name">${leastDeduct.map(p => esc(p.name)).join(', ')}</div><div class="mvp-desc">Zero Deductions — Perfect Composure!</div></div><div class="mvp-val">0 💔</div></div>` : ''}`;
+    }
+
+    function showFinalTab(tab, e) {
+      document.querySelectorAll('.final-panel').forEach(p => p.style.display = 'none');
+      document.querySelectorAll('.dash-tab').forEach(t => t.classList.remove('active'));
+      document.getElementById('final-' + tab).style.display = 'block';
+      if (e && e.target) e.target.classList.add('active');
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    //  PLAYER LOGIC
+    // ══════════════════════════════════════════════════════════════
+    function playerJoin() {
+      if (!db) { showToast('❌ Enter Firebase URL first!', 'error'); return; }
+      const name = document.getElementById('player-name').value.trim();
+      const code = document.getElementById('player-room-code').value.trim().toUpperCase();
+      if (!name) { showToast('Enter your name!', 'error'); return; }
+      if (!code) { showToast('Enter room code!', 'error'); return; }
+
+      const pid = 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+      playerState = {
+        id: pid, name, roomCode: code,
+        score: 0, chances: 3, currentQ: -1,
+        questions: [], joined: false,
+        correctCount: 0, wrongCount: 0, timeoutCount: 0, deductCount: 0,
+        questionStartTime: null
+      };
+
+      // Check room exists
+      const pRoomRef = db.ref('rooms/' + code);
+      pRoomRef.once('value').then(snap => {
+        if (!snap.exists()) {
+          showToast('❌ Room not found!', 'error');
+          playerState = null;
+          return;
+        }
+        const room = snap.val();
+        if (room.status !== 'lobby') {
+          showToast('❌ Game already started!', 'error');
+          playerState = null;
+          return;
+        }
+        // Send join action
+        pRoomRef.child('actions').push({ type: 'PLAYER_JOIN', data: { playerId: pid, name, roomCode: code }, ts: Date.now(), processed: false });
+        showScreen('player-waiting');
+        document.getElementById('pw-name').textContent = `👋 Hello, ${name}!`;
+        document.getElementById('pw-room').textContent = code;
+        listenAsPlayer(pRoomRef, code, pid);
+      }).catch(e => {
+        showToast('❌ Cannot reach Firebase', 'error');
+        playerState = null;
+      });
+    }
+
+    function listenAsPlayer(pRoomRef, code, pid) {
+      // Listen for messages directed to this player
+      const msgRef = pRoomRef.child('playerMessages/' + pid);
+      const msgFn = snap => {
+        snap.forEach(child => {
+          const msg = child.val();
+          if (!msg) return;
+          handlePlayerMsg(msg.type, msg);
+        });
+      };
+      msgRef.on('value', msgFn);
+      myListeners.push({ ref: msgRef, evt: 'value', fn: msgFn });
+
+      // Listen for broadcast messages (reveal, game over)
+      const bcRef = pRoomRef.child('broadcast');
+      const bcFn = snap => {
+        snap.forEach(child => {
+          const msg = child.val();
+          if (!msg || !playerState) return;
+          if (msg.type === 'QUESTION_REVEAL') showRevealBanner(msg.answer);
+        });
+      };
+      bcRef.on('value', bcFn);
+      myListeners.push({ ref: bcRef, evt: 'value', fn: bcFn });
+
+      // Listen for room state changes (game start, next question, game over, terminated)
+      const roomFn = snap => {
+        const room = snap.val();
+        if (!room || !playerState) return;
+        if (room.status === 'terminated') {
+          showToast('🗑️ Host terminated the room', 'error');
+          detachListeners();
+          playerState = null;
+          showScreen('player-join');
+          return;
+        }
+        if (room.status === 'gameover' && playerState.currentQ >= 0) {
+          clearInterval(playerTimerInterval);
+          clearTimeout(autoNextTimer);
+          showPlayerGameOver(room.players);
+          return;
+        }
+        if (room.status === 'playing') {
+          const q = room.currentQuestion;
+          const qIdx = room.currentQ;
+          if (!playerState.joined) return; // wait for JOIN_OK first
+
+          if (playerState.currentQ < 0) {
+            // Game just started
+            playerState.currentQ = 0;
+            playerState.score = 0;
+            playerState.chances = 3;
+            playerState.questionStartTime = room.questionStartTime;
+            if (q) {
+              playerState.questions[0] = q;
+              setupTabLeave(pRoomRef, code, pid);
+              showScreen('player-game');
+              startPlayerQuestion();
+            }
+          } else if (qIdx > playerState.currentQ) {
+            // New question from host
+            playerState.currentQ = qIdx;
+            playerState.chances = 3;
+            playerState.questionStartTime = room.questionStartTime;
+            if (q) playerState.questions[qIdx] = q;
+            clearInterval(playerTimerInterval); clearTimeout(autoNextTimer);
+            startPlayerQuestion();
+          }
+        }
+      };
+      pRoomRef.on('value', roomFn);
+      myListeners.push({ ref: pRoomRef, evt: 'value', fn: roomFn });
+
+      // Also listen for players list (for waiting room)
+      const plRef = pRoomRef.child('players');
+      const plFn = snap => {
+        const players = snap.val() || {};
+        if (document.getElementById('player-waiting').classList.contains('active')) {
+          renderWaitingList(players);
+        }
+      };
+      plRef.on('value', plFn);
+      myListeners.push({ ref: plRef, evt: 'value', fn: plFn });
+    }
+
+    function handlePlayerMsg(type, msg) {
+      if (!playerState) return;
+
+      if (type === 'JOIN_OK' && msg.playerId === playerState.id) {
+        playerState.joined = true;
+        showToast('✅ Joined successfully!', 'success');
+      }
+      if (type === 'JOIN_ERROR' && msg.playerId === playerState.id) {
+        showToast('❌ ' + msg.reason, 'error');
+        detachListeners();
+        playerState = null;
+        showScreen('player-join');
+      }
+      if (type === 'ANSWER_RESULT' && msg.playerId === playerState.id) {
+        if (msg.correct) {
+          playerState.score = msg.score;
+          playerState.correctCount++;
+          showAnswerResult(true, msg.bonus);
+        } else {
+          playerState.chances = msg.chances;
+          playerState.wrongCount++;
+          if (msg.deducted) {
+            playerState.score = msg.score;
+            playerState.deductCount++;
+          }
+          showAnswerResult(false, 0, msg.deducted);
+        }
+      }
+    }
+
+    // ── PLAYER GAME LOGIC ──
+    function startPlayerQuestion() {
+      clearInterval(playerTimerInterval);
+      playerTimerSecs = TIMER_MAX;
+      const q = playerState.questions ? playerState.questions[playerState.currentQ] : null;
+      if (!q) return;
+
+      const qNum = playerState.currentQ + 1;
+      document.getElementById('pg-q-number').textContent = `QUESTION ${qNum} OF 80`;
+      document.getElementById('pg-q-label').textContent = `Q ${qNum}/80`;
+      document.getElementById('pg-progress').style.width = `${(qNum / 80) * 100}%`;
+      document.getElementById('pg-score').textContent = `${playerState.score} pts`;
+      document.getElementById('pg-emoji').textContent = q.emojis.join('  ');
+      document.getElementById('player-answer').value = '';
+      document.getElementById('player-answer').disabled = false;
+      document.getElementById('pg-solved-count').textContent = `${playerState.correctCount} / 80`;
+      document.getElementById('answer-section').style.display = 'block';
+      document.getElementById('result-section').style.display = 'none';
+      document.getElementById('result-section').innerHTML = '';
+
+      resetHints(q);
+      renderChances();
+      updateArc(TIMER_MAX, TIMER_MAX);
+
+      playerTimerInterval = setInterval(() => {
+        playerTimerSecs--;
+        updateArc(playerTimerSecs, TIMER_MAX);
+
+        if (playerTimerSecs <= 5) document.getElementById('timer-arc').style.stroke = 'var(--red)';
+        else if (playerTimerSecs <= 12) document.getElementById('timer-arc').style.stroke = 'var(--yellow)';
+        else document.getElementById('timer-arc').style.stroke = 'var(--neon)';
+
+        if (playerTimerSecs === HINT2_AT) { unlockHint(1, q); showToast('💡 Letter hint unlocked!', 'info'); }
+        if (playerTimerSecs === HINT3_AT) { unlockHint(2, q); showToast('🔑 Final hint unlocked!', 'info'); }
+
+        if (playerTimerSecs <= 0) {
+          clearInterval(playerTimerInterval);
+          sendPlayerAction('PLAYER_TIMEOUT', { playerId: playerState.id, roomCode: playerState.roomCode });
+          playerState.timeoutCount++;
+          document.getElementById('player-answer').disabled = true;
+          document.getElementById('answer-section').style.display = 'none';
+          document.getElementById('result-section').innerHTML = `
+        <div class="reveal-banner" style="background:linear-gradient(135deg,#b8860b,#7b5800)">
+          <div style="font-size:20px">⏱️ Time's up!</div>
+          <div class="sub">Waiting for next question…</div></div>`;
+          document.getElementById('result-section').style.display = 'block';
+        }
+      }, 1000);
+    }
+
+    function sendPlayerAction(type, data) {
+      if (!db || !playerState) return;
+      db.ref('rooms/' + playerState.roomCode + '/actions').push({
+        type, data, ts: Date.now(), processed: false
+      });
+    }
+
+    function submitAnswer() {
+      if (!playerState || !playerState.questions) return;
+      if (playerTimerSecs <= 0 || playerState.chances <= 0) return;
+      const val = document.getElementById('player-answer').value.trim();
+      if (!val) { showToast('Type your answer!', 'error'); return; }
+      sendPlayerAction('PLAYER_ANSWER', {
+        playerId: playerState.id,
+        roomCode: playerState.roomCode,
+        answer: val,
+        questionIndex: playerState.currentQ,
+        questionStartTime: playerState.questionStartTime
+      });
+      document.getElementById('player-answer').value = '';
+    }
+
+    function showAnswerResult(correct, bonus = 0, deducted = false) {
+      const gc = document.getElementById('game-card');
+      const q = playerState.questions ? playerState.questions[playerState.currentQ] : null;
+
+      if (correct) {
+        clearInterval(playerTimerInterval); clearTimeout(autoNextTimer);
+        document.getElementById('answer-section').style.display = 'none';
+        document.getElementById('pg-score').textContent = `${playerState.score} pts`;
+        document.getElementById('pg-solved-count').textContent = `${playerState.correctCount} / 80`;
+        let cd = 3;
+        document.getElementById('result-section').innerHTML = `
+      <div class="reveal-banner">
+        <div style="font-size:26px">🎉 Correct!</div>
+        <div class="answer-word" style="margin:8px 0">${q ? q.answer : ''}</div>
+        <div class="sub">+10 pts${bonus > 0 ? ` + ${bonus} speed bonus! ⚡` : ''}</div>
+        <div class="auto-next-bar"><div class="auto-next-fill" id="anf" style="width:100%"></div></div>
+        <div class="auto-next-label" id="anl">Next in ${cd}s…</div></div>`;
+        document.getElementById('result-section').style.display = 'block';
+        gc.classList.add('flash-correct');
+        setTimeout(() => gc.classList.remove('flash-correct'), 500);
+        setTimeout(() => { const f = document.getElementById('anf'); if (f) f.style.width = '0%'; }, 50);
+        autoNextTimer = setInterval(() => {
+          cd--;
+          const l = document.getElementById('anl');
+          if (l) l.textContent = cd > 0 ? `Next in ${cd}s…` : '⏳ Waiting for host…';
+          if (cd <= 0) clearInterval(autoNextTimer);
+        }, 1000);
+      } else {
+        gc.classList.add('flash-wrong');
+        setTimeout(() => gc.classList.remove('flash-wrong'), 500);
+        const chancesGone = 3 - playerState.chances;
+        if (chancesGone >= 1 && q) unlockHint(1, q);
+        if (chancesGone >= 2 && q) unlockHint(2, q);
+        renderChances();
+        if (playerState.chances === 0) {
+          clearInterval(playerTimerInterval);
+          document.getElementById('player-answer').disabled = true;
+          document.getElementById('answer-section').style.display = 'none';
+          let html = `<div class="deduct-banner"><div class="deduct-word">💔 No Chances Left!</div>`;
+          if (deducted) html += `<div class="deduct-sub">⚠️ −${DEDUCT_PTS} points deducted from your score!</div>`;
+          html += `<div class="deduct-sub" style="margin-top:6px">Score: <strong style="color:var(--yellow)">${playerState.score} pts</strong></div>
+          <div class="deduct-sub">Waiting for next question…</div></div>`;
+          document.getElementById('result-section').innerHTML = html;
+          document.getElementById('result-section').style.display = 'block';
+          document.getElementById('pg-score').textContent = `${playerState.score} pts`;
+          if (deducted) showToast(`💔 −${DEDUCT_PTS} pts deducted!`, 'error');
+        } else {
+          showToast(`❌ Wrong! ${playerState.chances} chance${playerState.chances !== 1 ? 's' : ''} left`, 'error');
+          document.getElementById('player-answer').classList.add('anim-shake');
+          setTimeout(() => document.getElementById('player-answer').classList.remove('anim-shake'), 400);
+        }
+      }
+    }
+
+    function showRevealBanner(answer) {
+      clearInterval(playerTimerInterval);
+      const rs = document.getElementById('result-section');
+      if (!rs.innerHTML.includes('Correct') && !rs.innerHTML.includes('No Chances')) {
+        document.getElementById('answer-section').style.display = 'none';
+        rs.innerHTML = `<div class="reveal-banner" style="background:linear-gradient(135deg,var(--accent2),var(--accent3))">
+      <div style="font-size:13px;color:rgba(255,255,255,.75);margin-bottom:6px">The answer was:</div>
+      <div class="answer-word">${answer}</div>
+      <div class="sub">Next question loading…</div></div>`;
+        rs.style.display = 'block';
+      }
+    }
+
+    function showPlayerGameOver(players) {
+      const sorted = Object.values(players).sort((a, b) => b.score - a.score);
+      const me = players[playerState.id];
+      const myRank = sorted.findIndex(p => p.id === playerState.id) + 1;
+      document.getElementById('go-score').textContent = me ? me.score : playerState.score;
+      document.getElementById('go-rank').textContent = `Rank #${myRank} of ${sorted.length}`;
+      document.getElementById('go-emoji').textContent = myRank === 1 ? '🏆' : myRank === 2 ? '🥈' : myRank === 3 ? '🥉' : '🎮';
+      document.getElementById('final-rank-msg').textContent = myRank === 1 ? 'You won! 🎉' : myRank <= 3 ? 'On the podium! 🎊' : 'Great effort!';
+      document.getElementById('go-stats').innerHTML = `
+    <div class="score-row"><div style="flex:1">✅ Correct answers</div><div style="font-family:'Fredoka One',cursive;color:var(--green)">${me ? me.correctCount : 0}</div></div>
+    <div class="score-row"><div style="flex:1">❌ Wrong attempts</div><div style="font-family:'Fredoka One',cursive;color:var(--muted)">${me ? me.wrongCount : 0}</div></div>
+    <div class="score-row"><div style="flex:1">⏱️ Timeouts</div><div style="font-family:'Fredoka One',cursive;color:var(--yellow)">${me ? me.timeoutCount : 0}</div></div>
+    <div class="score-row"><div style="flex:1">💔 Score deductions</div><div style="font-family:'Fredoka One',cursive;color:var(--red)">${me ? (me.deductCount || 0) : 0}×</div></div>`;
+      showScreen('player-gameover');
+    }
+
+    function playerGoHome() {
+      detachListeners();
+      playerState = null;
+      showScreen('player-join');
+    }
+
+    function renderWaitingList(players) {
+      const el = document.getElementById('pw-player-list');
+      const list = Object.values(players);
+      el.innerHTML = !list.length
+        ? '<div class="empty">No players yet</div>'
+        : list.map(p => `<div class="score-row">
+        <div style="font-size:18px">🕹️</div>
+        <div style="flex:1;padding:0 10px;font-weight:700;font-size:14px">${esc(p.name)}</div>
+        <span class="badge badge-waiting">Ready</span></div>`).join('');
+    }
+
+    // ── HINTS ──
+    function getHints(p) {
+      const a = p.answer, len = a.length;
+      return [
+        p.hint,
+        a[0] + ' ' + Array(len - 1).fill('_').join(' '),
+        a[0] + ' ' + Array(len - 2).fill('·').join(' ') + ' ' + a[len - 1]
+      ];
+    }
+    function resetHints(puz) {
+      const h = getHints(puz);
+      const r0 = document.getElementById('hint-row-0');
+      const v0 = document.getElementById('hint-0');
+      if (r0) { r0.classList.remove('locked'); r0.classList.add('unlocked'); r0.style.background = ''; }
+      if (v0) { v0.classList.remove('masked'); v0.textContent = h[0]; }
+      [1, 2].forEach(i => {
+        const row = document.getElementById(`hint-row-${i}`);
+        const val = document.getElementById(`hint-${i}`);
+        if (row) { row.classList.add('locked'); row.classList.remove('unlocked'); row.style.background = ''; }
+        if (val) { val.classList.add('masked'); val.textContent = i === 1 ? '_ _ _ _ _' : '? … ?'; }
+      });
+    }
+    function unlockHint(level, puz) {
+      const h = getHints(puz);
+      const row = document.getElementById(`hint-row-${level}`);
+      const val = document.getElementById(`hint-${level}`);
+      if (!row || !val) return;
+      row.classList.remove('locked'); row.classList.add('unlocked');
+      val.classList.remove('masked'); val.textContent = h[level];
+      row.style.background = 'rgba(255,209,102,.25)';
+      setTimeout(() => { row.style.background = ''; }, 700);
+    }
+
+    // ── ARC / CHANCES ──
+    function updateArc(cur, max) {
+      const C = 226.19;
+      const arc = document.getElementById('timer-arc');
+      const txt = document.getElementById('timer-text');
+      if (arc) arc.style.strokeDashoffset = C * (1 - cur / max);
+      if (txt) txt.textContent = cur;
+    }
+    function renderChances() {
+      const el = document.getElementById('chances-display');
+      el.innerHTML = '';
+      for (let i = 0; i < 3; i++) {
+        const s = document.createElement('span');
+        s.className = 'heart' + (i >= playerState.chances ? ' lost' : '');
+        s.textContent = '❤️';
+        el.appendChild(s);
+      }
+    }
+
+    // ── TAB LEAVE ──
+    function setupTabLeave(pRoomRef, code, pid) {
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden && currentTab === 'player' && playerState && playerState.currentQ >= 0) triggerAbort(code, pid);
+      });
+      window.addEventListener('beforeunload', () => {
+        if (currentTab === 'player' && playerState && playerState.currentQ >= 0) {
+          sendPlayerAction('PLAYER_LEFT', { playerId: pid, roomCode: code, aborted: true });
+        }
+      });
+    }
+    function triggerAbort(code, pid) {
+      if (playerAborted) return;
+      playerAborted = true;
+      clearInterval(playerTimerInterval);
+      sendPlayerAction('PLAYER_LEFT', { playerId: pid, roomCode: code, aborted: true });
+      document.getElementById('abort-screen').classList.add('show');
+    }
+
+    // ── KEYBOARD ──
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      const active = document.querySelector('.screen.active');
+      if (!active) return;
+      if (active.id === 'player-game') submitAnswer();
+      if (active.id === 'player-join') playerJoin();
+      if (active.id === 'host-login') hostLogin();
+    });
+
+    // ══════════════════
+    // INIT
+    // ══════════════════
+    document.getElementById('loading-overlay').classList.add('hidden');
+    // Restore saved Firebase URL
+    const savedUrl = localStorage.getItem('fbUrl');
+    if (savedUrl) {
+      document.getElementById('firebase-url').value = savedUrl;
+      document.getElementById('player-firebase-url').value = savedUrl;
+      initFirebase(savedUrl);
+    }
+    showScreen('host-login');
+  </script>
+</body>
+
+</html>
